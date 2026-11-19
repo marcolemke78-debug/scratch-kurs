@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scratch-Kurs</title>
+<style>
+  /* ============================================================
+     Scratch-Kurs: Videos + Lernkarten von App Camps, Schritt für Schritt.
+     Eine einzige Datei. Zwei Ansichten: Kursübersicht und Projektseite.
+     Welche Ansicht gezeigt wird, steht hinter dem # in der Adresse.
+     ============================================================ */
+  * { box-sizing: border-box; }
+  :root {
+    --ink: #1f2430; --muted: #5b6472; --line: #e3e7ee;
+    --accent: #f78c1b;            /* Scratch-Orange */
+    --accent-dark: #b85f00;       /* Orange für Text auf Weiß (besser lesbar) */
+    --done: #1e9e5a;              /* Grün für "geschafft" */
+    --done-bg: #e6f6ed;
+    --card: #ffffff;
+    --bg1: #eef3fb; --bg2: #f7eef6;
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(160deg, var(--bg1), var(--bg2));
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-size: 16px; line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 48px; }
+  a { color: var(--accent-dark); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 3px solid #2f6fed; outline-offset: 2px; }
+
+  /* ---------- Kopf ---------- */
+  header.top { text-align: center; margin-bottom: 22px; }
+  header.top .logo { font-size: 40px; line-height: 1; }
+  header.top h1 { font-size: 30px; font-weight: 800; margin: 6px 0 4px; }
+  header.top p { font-size: 16px; color: var(--muted); margin: 0; }
+
+  /* ---------- "So geht's": drei Schritte ---------- */
+  .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 18px; padding: 0; list-style: none; }
+  .how li { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+    display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; }
+  .how b { display: block; font-size: 15px; }
+  .how .n { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff;
+    font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+  /* ---------- Großer "Weiter"-Knopf ---------- */
+  .cta { display: flex; align-items: center; gap: 14px; text-decoration: none; color: #fff;
+    background: var(--accent); border-radius: 16px; padding: 14px 20px; margin: 0 0 28px;
+    box-shadow: 0 6px 20px rgba(247,140,27,.35); min-height: 64px; }
+  .cta .ico { font-size: 32px; line-height: 1; }
+  .cta small { display: block; font-size: 13px; opacity: .95; font-weight: 600; }
+  .cta strong { font-size: 19px; }
+  .cta .arrow { margin-left: auto; font-size: 24px; font-weight: 800; }
+  .cta.alldone { background: var(--done); box-shadow: none; }
+
+  /* ---------- Kurse und Projekt-Kacheln ---------- */
+  section.course { margin: 0 0 30px; }
+  .course-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 4px; }
+  .course-head h2 { font-size: 21px; font-weight: 800; margin: 0; }
+  .course-head .count { font-size: 13px; font-weight: 700; color: var(--muted); margin-left: auto; }
+  .course > p { font-size: 14.5px; color: var(--muted); margin: 0 0 12px; max-width: 65ch; }
+  .course > p.note { color: var(--ink); background: #fff7ec; border: 1.5px solid #f7c98b; border-radius: 12px; padding: 10px 14px; max-width: none; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+  a.proj { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px 16px;
+    text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 6px; min-width: 0;
+    box-shadow: 0 4px 16px rgba(20,30,60,.06); transition: transform .15s ease, box-shadow .15s ease; }
+  a.proj:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(20,30,60,.12); }
+  a.proj .row { display: flex; align-items: center; gap: 8px; }
+  a.proj .ico { font-size: 28px; line-height: 1; }
+  a.proj .chip { margin-left: auto; font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    background: #eef0f4; color: var(--muted); white-space: nowrap; }
+  a.proj .chip.started { background: #fff0db; color: var(--accent-dark); }
+  a.proj .chip.done { background: var(--done-bg); color: #14703f; }
+  a.proj h3 { font-size: 17px; font-weight: 800; margin: 2px 0 0; }
+  a.proj p { font-size: 13.5px; color: #3c4250; margin: 0; line-height: 1.45; }
+  a.proj.is-done { border-color: #bfe6cf; }
+
+  /* ---------- Projektseite ---------- */
+  .back { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; text-decoration: none; }
+  .p-head { display: flex; align-items: center; gap: 14px; margin: 4px 0 6px; }
+  .p-head .ico { font-size: 44px; line-height: 1; }
+  .p-head h1 { font-size: 28px; font-weight: 800; margin: 0; line-height: 1.15; }
+  .p-head .where { font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 0 2px; }
+  .p-desc { font-size: 16px; margin: 0 0 6px; max-width: 65ch; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; padding: 0; list-style: none; }
+  .tags li { font-size: 12.5px; font-weight: 700; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .hint { background: #fff7ec; border: 1.5px solid #f7c98b; border-radius: 12px; padding: 10px 14px; font-size: 14.5px; margin: 0 0 14px; }
+
+  .banner { background: var(--done-bg); border: 1.5px solid #9ed8b7; border-radius: 16px; padding: 14px 18px;
+    margin: 0 0 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  .banner strong { font-size: 18px; }
+  .banner a { margin-left: auto; }
+
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 16px; margin: 0 0 12px;
+    box-shadow: 0 4px 16px rgba(20,30,60,.06); overflow: hidden; }
+  .step-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 60px;
+    background: none; border: 0; text-align: left; }
+  .step-head .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff;
+    font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .step.is-done .step-head .n { background: var(--done); }
+  .step-head .t { font-size: 18px; font-weight: 800; }
+  .step-head .sub { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .step-head .chev { margin-left: auto; font-size: 20px; color: var(--muted); transition: transform .15s ease; }
+  .step.is-open .step-head .chev { transform: rotate(90deg); }
+  .step-body { padding: 0 16px 16px; }
+  .step-body > p, .step-body > ul { margin: 0 0 12px; max-width: 70ch; }
+  .step-body ul { padding-left: 22px; }
+  .step-body li { margin: 0 0 4px; }
+
+  /* Rahmen für eingebettete Videos und Lernkarten: hält das Seitenverhältnis */
+  .frame { position: relative; width: 100%; padding-top: 56.25%; background: #10131a; border-radius: 12px; overflow: hidden; margin: 0 0 14px; }
+  .frame.cards { padding-top: calc(72.9% + 40px); background: #e9ecf2; }
+  .vid { max-width: 720px; }   /* Videos nicht riesig: der Weiter-Knopf soll sichtbar bleiben */
+  .frame iframe { position: absolute; inset: 0; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 18px;
+    border-radius: 12px; font-weight: 800; font-size: 15px; text-decoration: none; border: 2px solid transparent; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.go { background: var(--done); color: #fff; }
+  .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
+  .btn:hover { filter: brightness(1.04); }
+
+  .seg { display: inline-flex; background: #eef0f4; border-radius: 12px; padding: 4px; margin: 0 0 14px; }
+  .seg button { min-height: 44px; padding: 8px 16px; border: 0; background: none; border-radius: 9px; font-weight: 700; font-size: 14.5px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(20,30,60,.15); }
+
+  .linkbtn { background: none; border: 0; padding: 10px 0; min-height: 44px; color: var(--muted); font-size: 13.5px; text-decoration: underline; }
+
+  footer { text-align: center; margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+
+  @media (max-width: 640px) {
+    .how { grid-template-columns: 1fr; }
+    header.top h1 { font-size: 26px; }
+    .p-head h1 { font-size: 23px; }
+    .p-head .ico { font-size: 36px; }
+    .banner a { margin-left: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main id="app"></main>
+  <footer>
+    Videos und Lernkarten: <a href="https://appcamps.de" target="_blank" rel="noopener">App Camps</a>.
+    Aufbau nach den fobizz-Tafeln von App Camps
+    (<a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>),
+    die Lernkarten stehen unter CC BY-SA. Alle Inhalte sind hier unverändert eingebettet.
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   1. DATEN
+   Jeder Kurs hat Projekte. Jedes Projekt besteht aus:
+     start = Startvideo   (Vimeo "Nummer:Schlüssel", dahinter die Länge in Sekunden)
+     cards = Lernkarten   (Name des Foliensatzes bei slides.com)
+     easy  = Lernkarten in einfacher Sprache (gibt es nur bei zwei Projekten)
+     end   = Abschlussvideo (fehlt bei manchen Projekten)
+   Neue Projekte kommen einfach als weitere Zeile dazu.
+   ============================================================ */
+const COURSES = [
+  { id: 'grundkurs', title: 'Grundkurs', sub: 'Start hier. Vier Projekte, die aufeinander aufbauen. Mach sie der Reihe nach.',
+    projects: [
+      { id: 'geburtstagskarte', ico: '🎂', title: 'Geburtstagskarte',
+        desc: 'Dein erstes Projekt: Du bringst die Katze zum Sprechen und baust eine animierte Geburtstagskarte.',
+        learn: ['Scratch kennenlernen', 'Figuren bewegen', 'Sprechblasen'],
+        task: 'Programmiere mit Hilfe der Lernkarten eine animierte Geburtstagskarte.',
+        start: ['310652868:d291f4fbf8', 334], cards: 's1karte', easy: 'es1karte', end: ['344132633:dba1449267', 153] },
+      { id: 'unterwasserwelt', ico: '🐠', title: 'Unterwasserwelt',
+        desc: 'Ein Spiel unter Wasser: Die Figuren schwimmen von allein und ein Punktestand zählt mit.',
+        learn: ['Schleifen', 'Variable für Punkte'],
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel in der Unterwasserwelt. Die Figuren sollen ihre Bewegungen von allein wiederholen.',
+        start: ['310932395:992b0cb706', 170], cards: 's2wasser', easy: 'es2karte', end: ['344382769:0dd705ab13', 195] },
+      { id: 'zauberwald', ico: '🧙', title: 'Zauberwald',
+        desc: 'Du steuerst eine Spielfigur mit den Pfeiltasten durch einen verzauberten Wald.',
+        learn: ['Steuerung mit Tasten', 'Falls-dann-Blöcke'],
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel in einem verzauberten Wald.',
+        start: ['310736696:5f7923a58e', 317], cards: 's3hexe', end: ['344386485:de460ae389', 148] },
+      { id: 'quiz', ico: '❓', title: 'Quiz',
+        desc: 'Ein Quiz mit zwei Leveln: Dein Programm prüft die Antworten und zählt die Punkte.',
+        learn: ['Antworten prüfen', 'Eigene Blöcke'],
+        task: 'Programmiere mit Hilfe der Lernkarten ein Quiz.',
+        start: ['310583667:01ddc68b9d', 235], cards: 's4quiz', end: ['344389050:54f1e2d9f1', 142] }
+    ] },
+
+  { id: 'specials', title: 'Specials', sub: 'Zwei Spiele für alle, die den Grundkurs geschafft haben.',
+    projects: [
+      { id: 'weltraum', ico: '🚀', title: 'Weltraum',
+        desc: 'Du programmierst ein Spiel im Weltraum.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel im Weltraum.',
+        start: ['340644868:888b7d9bb6', 148], cards: 'sweltraum', end: ['377257868:18ba49679b', 198] },
+      { id: 'fussball', ico: '⚽', title: 'Fußball',
+        desc: 'Du programmierst ein Fußballspiel.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Fußballspiel in Scratch.',
+        start: ['275992719:ce04bf5085', 147], cards: 'sfussball' }
+    ] },
+
+  { id: 'informatik', title: 'Informatik-Projekte', sub: 'Programme, die rechnen und übersetzen. Dazu ein Retro-Spiel. Am besten nach dem Grundkurs.',
+    projects: [
+      { id: 'datenmengen', ico: '💾', title: 'Datenmengen-Umrechner',
+        desc: 'Dein Programm rechnet zwischen Bits und Bytes um.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine Anwendung, die zwischen Bits und Bytes umrechnet.',
+        start: ['485648906:fb3aba6b74', 158], cards: 'gi2m2s1', end: ['524203837:b864493419', 186] },
+      { id: 'binaerzaehler', ico: '🔢', title: 'Binärzähler',
+        desc: 'Dein Programm rechnet zwischen Binärzahlen und Dezimalzahlen um.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine Anwendung, die zwischen Dezimal- und Binärzahlen umrechnet.',
+        start: ['489797943:47113d8030', 193], cards: 'gi2m2s2', end: ['509566448:ebcfc9a886', 117] },
+      { id: 'fingeralphabet', ico: '🤟', title: 'Fingeralphabet',
+        desc: 'Tippe ein Wort ein und dein Programm zeigt es im Fingeralphabet.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine Anwendung, die Buchstaben ins Fingeralphabet übersetzt.',
+        start: ['486449716:1ee5555f91', 234], cards: 'gi2m2s3', end: ['479339619:12a35e42f4', 119] },
+      { id: 'jump-n-run', ico: '🕹️', title: 'Jump \u2019n\u2019 Run',
+        desc: 'Ein Retro-Spiel: Deine Figur springt über Hindernisse und sammelt Punkte. Mit Musik und Sounds.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Jump-\u2019n\u2019-Run-Spiel mit Scratch.',
+        start: ['493687274:7272292b25', 209], cards: 'gi2m2s4', end: ['519486907:5b4b6a0fa7', 147] },
+      { id: 'co2-rechner', ico: '🌍', title: 'CO₂-Rechner',
+        desc: 'Mit deinem Programm vergleichst du den CO₂-Fußabdruck verschiedener Lebensmittel.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine Anwendung, mit der du den CO₂-Fußabdruck von Lebensmitteln vergleichen kannst.',
+        start: ['496004262:6526133564', 264], cards: 'gi2m4s4', end: ['535750190:cb62a8512f', 229] }
+    ] },
+
+  { id: 'nachhaltigkeit', title: 'Nachhaltigkeit', sub: 'Vier Spiele rund um Müll, Wasser, Luft und Meer.',
+    projects: [
+      { id: 'labyrinth', ico: '🧹', title: 'Räum das Labyrinth auf',
+        desc: 'Deine Figur sammelt den Müll ein, der im Labyrinth herumliegt.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel, in dem deine Figur herumliegenden Müll in einem Labyrinth einsammelt.',
+        start: ['722158393:1a5b25a7ae', 249], cards: 'stern01', end: ['726699710:813241debd', 204] },
+      { id: 'regentropfen', ico: '💧', title: 'Regentropfen sammeln',
+        desc: 'Deine Figur fängt herunterfallende Regentropfen auf.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel, in dem deine Figur herunterfallende Regentropfen auffängt.',
+        start: ['722159714:7191297300', 233], cards: 'regen02', end: ['738197057:ce6de16974', 236] },
+      { id: 'co2-pong', ico: '☁️', title: 'CO₂ Pong',
+        desc: 'Mit einer Plattform räumst du CO₂-Wolken weg.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel, in dem du mit einer Plattform CO₂-Wolken beseitigst.',
+        start: ['724411665:73f7577973', 219], cards: 'wolke03', end: ['746872510:4e2238ee29', 248] },
+      { id: 'fang-den-fisch', ico: '🐟', title: 'Fang den Fisch',
+        desc: 'Ein Spiel zum Meeresschutz: Dein Fischerboot macht eine Fangpause, damit sich die Fische erholen können.',
+        task: 'Programmiere mit Hilfe der Lernkarten ein Spiel, in dem ein Fischerboot eine Fangpause einlegt.',
+        start: ['725569010:3c24fa5828', 285], cards: 'nemo04', end: ['731710468:3388c932e5', 340] }
+    ] },
+
+  { id: 'bewegung', title: 'Bewegung', sub: 'Programme, die dich in Bewegung bringen.',
+    projects: [
+      { id: 'tanz-party', ico: '💃', title: 'Tanz Party',
+        desc: 'Du bringst verschiedene Figuren zum Tanzen.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine animierte Tanz Party.',
+        start: ['545887061:df6e744536', 227], cards: 's3tanzparty', end: ['554440155:16e0187f29', 189] },
+      { id: 'stretch', ico: '🤸', title: 'Stretch mit Scratch',
+        desc: 'Dein Programm führt durch eine Runde Dehnen und Strecken. Anzahl und Länge der Übungen kann man einstellen.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine Bewegungseinheit zum Dehnen und Strecken.',
+        start: ['545888440:c3f24890c4', 215], cards: 's2stretching', end: ['571246039:b8675d7f98', 194] },
+      { id: 'warm-up', ico: '🏃', title: 'Warm Up',
+        desc: 'Dein Programm führt durch Aufwärmübungen. Du nimmst dafür deine Stimme auf und nutzt Sounds und Bilder.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine Anwendung, die durch verschiedene Aufwärmübungen führt.',
+        start: ['545888195:e6d40cf1a2', 253], cards: 's1warmup', end: ['558086750:5eb3ab28f9', 204] },
+      { id: 'eigene-anwendung', ico: '💡', title: 'Eigene Anwendung',
+        desc: 'Jetzt bist du dran: Du planst und programmierst deine eigene Anwendung zum Thema Bewegung.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine eigene Anwendung zum Thema Bewegung.',
+        start: ['571244481:a9e3d3d9a7', 252], cards: 's4eigenes', end: ['569339222:1dd6cb3d5d', 196] }
+    ] },
+
+  { id: 'ki', title: 'KI mit Scratch', sub: 'Hier bringst du dem Computer selbst etwas bei.',
+    note: 'Für diese Projekte brauchst du zusätzlich eine KI-Seite im Internet, zum Beispiel \u201EMachine Learning for Kids\u201C. Frag deine Lehrkraft, bevor du startest.',
+    projects: [
+      { id: 'make-me-happy', ico: '😊', title: 'Make me Happy',
+        desc: 'Deine Figur reagiert unterschiedlich auf freundliche und gemeine Sätze.',
+        task: 'Erstelle mit Künstlicher Intelligenz eine Figur, die unterschiedlich auf freundliche und gemeine Eingaben reagiert. Die Lernkarten helfen dir dabei.',
+        start: ['322237234:b7b49761c0', 270], cards: 's1turing', end: ['334885401:2a2fdcdf5f', 203] },
+      { id: 'chatbot', ico: '🦉', title: 'Chatbot',
+        desc: 'Du baust einen Chatbot, der Fragen zum Thema Eulen beantwortet.',
+        task: 'Erstelle mit Künstlicher Intelligenz einen Chatbot zum Thema \u201EEulen\u201C. Die Lernkarten helfen dir dabei.',
+        start: ['324154074:d940ca7744', 176], cards: 's2searle', end: ['329081452:c6e180b52a', 227] },
+      { id: 'emoji-mask', ico: '🎭', title: 'Emoji Mask',
+        desc: 'Eine Emoji-Maske verdeckt im Videobild dein Gesicht.',
+        hint: 'Für dieses Projekt brauchst du eine Webcam.',
+        task: 'Erstelle mit Künstlicher Intelligenz eine Emoji-Maske, die im Video dein Gesicht verdeckt. Die Lernkarten helfen dir dabei.',
+        start: ['426972857:7ff76a2458', 198], cards: 's3emoji', end: ['yt:fT69SLK2m9I'] }
+    ] },
+
+  { id: 'maerchen', title: 'Märchen: Once Upon A Scratch', sub: 'Du erzählst Geschichten mit Scratch. Die drei Projekte gehören zusammen.',
+    projects: [
+      { id: 'kuafu', ico: '🌞', title: 'Kuafu und die Sonne',
+        desc: 'Du erweckst die chinesische Legende von Kuafu und der Sonne in Scratch zum Leben.',
+        hint: 'Die Legende zum Anhören oder Lesen bekommst du von deiner Lehrkraft.',
+        task: 'Höre oder lies zuerst die Legende \u201EKuafu und die Sonne\u201C. Programmiere sie dann mit Hilfe der Lernkarten in Scratch.',
+        start: ['1036728559:6d893a0a8c', 445], cards: 'once-upon-a-scratch-01', end: ['1026591777:4c8b9345ee', 243] },
+      { id: 'maerchen-vorbereiten', ico: '🎨', title: 'Eigenes Märchen vorbereiten',
+        desc: 'Du wählst ein deutsches Märchen aus und erstellst mit KI-Bildwerkzeugen die passenden Figuren.',
+        hint: 'Für die KI-Bildwerkzeuge brauchst du deine Lehrkraft.',
+        task: 'Wähle ein deutsches Märchen aus, das du neu erzählen möchtest. Erstelle dann mit Hilfe der Lernkarten passende Figuren, die du später in Scratch verwenden kannst.',
+        start: ['1053038854:f0bd1e729a', 194], cards: 'once-upon-a-scratch-02' },
+      { id: 'maerchen-animieren', ico: '📖', title: 'Eigenes Märchen animieren',
+        desc: 'Deine Märchenfiguren sprechen miteinander und erzählen das Märchen neu.',
+        task: 'Erwecke deine Märchenfiguren zum Leben: Lass sie in Scratch miteinander sprechen und erzähle so das Märchen neu. Die Anleitung findest du auf den Lernkarten.',
+        start: ['1053161706:a0098c0e58', 134], cards: 'once-upon-a-scratch-03', end: ['1027631635:5f4d2b62b1', 231] }
+    ] },
+
+  { id: 'traumreise', title: 'Traumreise', sub: 'Eine Geschichte zum Entspannen, mit Bildern und deiner Stimme. Mach die vier Teile der Reihe nach.',
+    projects: [
+      { id: 'traumreise-programmieren', ico: '🌙', title: 'Traumreise programmieren',
+        desc: 'Du programmierst eine erste Traumreise. Bilder und Töne sind schon da, du fügst die Blöcke ein.',
+        task: 'Programmiere mit Hilfe der Lernkarten eine animierte Traumreise.',
+        start: ['440293246', 178], cards: 'traumreise-s1', end: ['475594129'] },
+      { id: 'traumreise-schreiben', ico: '✏️', title: 'Traumreise schreiben',
+        desc: 'Du schreibst deine eigene Traumreise und suchst passende Bilder dazu.',
+        task: 'Schreibe mit Hilfe der Lernkarten eine eigene Traumreise.',
+        start: ['464131927', 192], cards: 'traumreise-s2', end: ['470300045'] },
+      { id: 'traumreise-einsprechen', ico: '🎙️', title: 'Traumreise einsprechen',
+        desc: 'Du sprichst deine Traumreise in Scratch ein und fügst deine Bilder hinzu.',
+        task: 'Sprich mit Hilfe der Lernkarten deine Traumreise in Scratch ein.',
+        start: ['462200363', 166], cards: 'traumreise-s3', end: ['461297907'] },
+      { id: 'traumreise-erweitern', ico: '✨', title: 'Traumreise erweitern',
+        desc: 'Du baust dein Programm aus: neues Design, Bildübergänge oder eine zweite Traumreise.',
+        task: 'Erweitere mit Hilfe der Lernkarten deine Traumreise.',
+        start: ['460117769', 94], cards: 'traumreise-s4', end: ['462941343'] }
+    ] }
+];
+
+/* Flache Liste aller Projekte, jeweils mit Verweis auf Kurs und Position.
+   So findet man später schnell "das nächste Projekt". */
+const ALL = [];
+COURSES.forEach(function (course) {
+  course.projects.forEach(function (p, i) {
+    p.course = course; p.index = i;
+    ALL.push(p);
+  });
+});
+
+/* ============================================================
+   2. FORTSCHRITT SPEICHERN
+   localStorage = ein kleiner Notizzettel im Browser dieses Geräts.
+   Er bleibt erhalten, wenn man die Seite schließt. try/catch fängt
+   den Fall ab, dass der Browser das Speichern verbietet (privater Modus).
+   ============================================================ */
+const KEY = 'scratchkurs-v1';
+let state = { done: {}, easy: false };   // done: { projektId: [true, false, false] }
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY));
+  if (saved && typeof saved === 'object') {
+    state.done = (saved.done && typeof saved.done === 'object' && !Array.isArray(saved.done)) ? saved.done : {};
+    state.easy = !!saved.easy;
+  }
+} catch (e) { /* kein Speicher verfügbar: Seite funktioniert trotzdem */ }
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignorieren */ }
+}
+function steps(p) {
+  // Egal was im Speicher steht: Es kommen immer genau drei Ja/Nein-Werte zurück.
+  const a = state.done[p.id];
+  return Array.isArray(a) ? [0, 1, 2].map(function (i) { return !!a[i]; }) : [false, false, false];
+}
+function doneCount(p) { return steps(p).filter(Boolean).length; }
+function isDone(p) { return doneCount(p) === 3; }
+
+/* Welches Projekt ist als Nächstes dran?
+   Erst ein angefangenes, sonst das erste noch nicht geschaffte. */
+function nextUp() {
+  return ALL.find(function (p) { return doneCount(p) > 0 && !isDone(p); })
+      || ALL.find(function (p) { return !isDone(p); })
+      || null;
+}
+
+/* ============================================================
+   3. HILFSFUNKTIONEN FÜR ADRESSEN
+   ============================================================ */
+function videoUrl(v) {
+  if (v.indexOf('yt:') === 0) {
+    return 'https://www.youtube-nocookie.com/embed/' + v.slice(3) + '?rel=0';
+  }
+  const parts = v.split(':');   // "Nummer:Schlüssel"
+  // dnt=1 heißt "do not track": Vimeo soll kein Nutzungsprofil anlegen.
+  return 'https://player.vimeo.com/video/' + parts[0] + '?' + (parts[1] ? 'h=' + parts[1] + '&' : '') +
+         'dnt=1&title=0&byline=0&portrait=0';
+}
+function cardsUrl(slug, mode) {
+  return 'https://appcamps.slides.com/appcamps/' + slug + '/' + mode + (mode === 'embed' ? '?dnt=1' : '');
+}
+function minutes(sec) { return Math.max(1, Math.round(sec / 60)); }
+
+/* ============================================================
+   4. ANSICHT: KURSÜBERSICHT
+   ============================================================ */
+function renderOverview() {
+  const next = nextUp();
+  const anyProgress = ALL.some(function (p) { return doneCount(p) > 0; });
+
+  let cta;
+  if (!next) {
+    cta = '<div class="cta alldone"><span class="ico">🏆</span><span><small>Wow!</small><strong>Du hast alle Projekte geschafft.</strong></span></div>';
+  } else {
+    cta = '<a class="cta" href="#' + next.id + '"><span class="ico">' + next.ico + '</span>' +
+          '<span><small>' + (anyProgress ? 'Weiter geht\u2019s mit' : 'Los geht\u2019s mit') + '</small><strong>' + next.title + '</strong></span>' +
+          '<span class="arrow" aria-hidden="true">→</span></a>';
+  }
+
+  const courses = COURSES.map(function (c) {
+    const finished = c.projects.filter(isDone).length;
+    const cards = c.projects.map(function (p) {
+      const n = doneCount(p);
+      const chip = n === 3 ? '<span class="chip done">✓ Geschafft</span>'
+                 : n > 0  ? '<span class="chip started">Angefangen</span>'
+                 : '<span class="chip">Projekt ' + (p.index + 1) + '</span>';
+      return '<a class="proj' + (n === 3 ? ' is-done' : '') + '" href="#' + p.id + '">' +
+               '<span class="row"><span class="ico">' + p.ico + '</span>' + chip + '</span>' +
+               '<h3>' + p.title + '</h3><p>' + p.desc + '</p></a>';
+    }).join('');
+    return '<section class="course" aria-labelledby="c-' + c.id + '">' +
+             '<div class="course-head"><h2 id="c-' + c.id + '">' + c.title + '</h2>' +
+             '<span class="count">' + finished + ' von ' + c.projects.length + ' geschafft</span></div>' +
+             '<p>' + c.sub + '</p>' +
+             (c.note ? '<p class="note">' + c.note + '</p>' : '') +
+             '<div class="grid">' + cards + '</div></section>';
+  }).join('');
+
+  const reset = anyProgress
+    ? '<p style="text-align:center;margin:0"><button class="linkbtn" data-action="ask-reset-all" id="reset-all">Fortschritt auf diesem Gerät löschen</button></p>'
+    : '';
+
+  return '<header class="top"><div class="logo">🐱</div><h1>Scratch-Kurs</h1>' +
+           '<p>Video ansehen, Lernkarten durcharbeiten, selbst programmieren. In deinem Tempo.</p></header>' +
+         '<ol class="how">' +
+           '<li><span class="n">1</span><span><b>Startvideo</b>Schau dir an, was du baust.</span></li>' +
+           '<li><span class="n">2</span><span><b>Lernkarten</b>Programmiere Karte für Karte in Scratch.</span></li>' +
+           '<li><span class="n">3</span><span><b>Abschluss</b>Zeig dein Ergebnis und hake das Projekt ab.</span></li>' +
+         '</ol>' + cta + courses + reset;
+}
+
+/* ============================================================
+   5. ANSICHT: PROJEKTSEITE
+   Drei aufklappbare Schritte. Nur der offene Schritt lädt sein Video
+   bzw. seine Lernkarten. Das spart Datenvolumen im Schul-WLAN.
+   ============================================================ */
+let openStep = 0;   // welcher Schritt ist gerade aufgeklappt (0, 1, 2 oder -1 = keiner)
+
+function stepBox(p, i, title, sub, body) {
+  const done = steps(p)[i];
+  const open = openStep === i;
+  return '<div class="step' + (done ? ' is-done' : '') + (open ? ' is-open' : '') + '" id="step-' + i + '">' +
+           '<button class="step-head" data-action="toggle" data-step="' + i + '" aria-expanded="' + open + '">' +
+             '<span class="n">' + (done ? '✓' : (i + 1)) + '</span>' +
+             '<span><span class="t">' + title + '</span><span class="sub">' + sub + '</span></span>' +
+             '<span class="chev" aria-hidden="true">›</span></button>' +
+           (open ? '<div class="step-body">' + body + '</div>' : '') +
+         '</div>';
+}
+
+function frame(url, title, extraClass) {
+  const box = '<div class="frame' + (extraClass ? ' ' + extraClass : '') + '"><iframe src="' + url + '" title="' + title +
+         '" allow="fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+  return extraClass ? box : '<div class="vid">' + box + '</div>';   // Videos bekommen eine Höchstbreite
+}
+
+function doneButton(p, i, label) {
+  if (steps(p)[i]) return '<p style="margin:0;font-weight:700;color:#14703f">✓ Erledigt</p>';
+  return '<button class="btn go" data-action="done" data-step="' + i + '">' + label + '</button>';
+}
+
+function renderProject(p) {
+  const course = p.course;
+  const useEasy = state.easy && p.easy;
+  const slug = useEasy ? p.easy : p.cards;
+
+  // Das nächste Projekt im selben Kurs (falls es eins gibt)
+  const nextInCourse = course.projects[p.index + 1];
+
+  // Schritt 1: Startvideo
+  const s1 = '<p>Schau dir das Startvideo an. Es zeigt dir, was du in diesem Projekt programmierst.</p>' +
+             frame(videoUrl(p.start[0]), 'Startvideo: ' + p.title) +
+             doneButton(p, 0, 'Video gesehen, weiter →');
+
+  // Schritt 2: Lernkarten + Scratch
+  const toggle = p.easy
+    ? '<div class="seg" role="group" aria-label="Sprache der Lernkarten">' +
+        '<button data-action="easy" data-value="0" aria-pressed="' + !useEasy + '">Normale Lernkarten</button>' +
+        '<button data-action="easy" data-value="1" aria-pressed="' + !!useEasy + '">Einfache Sprache</button></div>'
+    : '';
+  const s2 = '<p><b>Deine Aufgabe:</b> ' + p.task + '</p>' +
+             '<div class="btns">' +
+               '<a class="btn primary" href="https://scratch.mit.edu/projects/editor/" target="_blank" rel="noopener">Scratch öffnen ↗</a>' +
+               '<a class="btn ghost" href="' + cardsUrl(slug, 'fullscreen') + '" target="_blank" rel="noopener">Lernkarten groß öffnen ↗</a>' +
+             '</div>' + toggle +
+             frame(cardsUrl(slug, 'embed'), 'Lernkarten: ' + p.title, 'cards') +
+             '<p>Blättere mit dem Pfeil am rechten Rand zur nächsten Karte. Erst wenn eine Karte bei dir funktioniert, geht es weiter.</p>' +
+             doneButton(p, 1, 'Fertig programmiert, weiter →');
+
+  // Schritt 3: Abschluss (mit oder ohne Video)
+  const s3 = '<ul>' +
+               '<li>Zeig dein Projekt einer Mitschülerin, einem Mitschüler oder deiner Lehrkraft.</li>' +
+               (p.end ? '<li>Schau dir das Abschlussvideo an.</li>' : '') +
+               '<li>Überlege: Was hat dir beim Programmieren besonders gut gefallen? Was war knifflig?</li>' +
+             '</ul>' +
+             (p.end ? frame(videoUrl(p.end[0]), 'Abschlussvideo: ' + p.title) : '') +
+             doneButton(p, 2, 'Projekt abschließen 🎉');
+
+  const banner = isDone(p)
+    ? '<div class="banner"><strong>🎉 Geschafft! ' + p.title + ' ist fertig.</strong>' +
+        (nextInCourse
+          ? '<a class="btn primary" href="#' + nextInCourse.id + '">Weiter: ' + nextInCourse.title + ' →</a>'
+          : '<a class="btn primary" href="#">Zur Kursübersicht →</a>') + '</div>'
+    : '';
+
+  const tags = p.learn ? '<ul class="tags" aria-label="Das lernst du">' + p.learn.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul>' : '';
+  const hints = (course.note ? '<p class="hint">' + course.note + '</p>' : '') + (p.hint ? '<p class="hint">' + p.hint + '</p>' : '');
+
+  return '<a class="back" href="#">← Zur Kursübersicht</a>' +
+         '<div class="p-head"><span class="ico">' + p.ico + '</span><div>' +
+           '<p class="where">' + course.title + ' · Projekt ' + (p.index + 1) + ' von ' + course.projects.length + '</p>' +
+           '<h1>' + p.title + '</h1></div></div>' +
+         '<p class="p-desc">' + p.desc + '</p>' + tags + hints + banner +
+         stepBox(p, 0, 'Startvideo ansehen', p.start[1] ? 'Video, etwa ' + minutes(p.start[1]) + ' Minuten' : 'Video', s1) +
+         stepBox(p, 1, 'Mit den Lernkarten programmieren', 'Lernkarten und Scratch', s2) +
+         stepBox(p, 2, 'Abschluss', p.end && p.end[1] ? 'Zeigen, Video (etwa ' + minutes(p.end[1]) + ' Minuten), abhaken' : 'Zeigen und abhaken', s3) +
+         (doneCount(p) > 0 ? '<button class="linkbtn" data-action="ask-reset-one" id="reset-one">Dieses Projekt neu starten</button>' : '');
+}
+
+/* ============================================================
+   6. STEUERUNG
+   render() schaut in die Adresse (#projektname) und zeichnet die passende Ansicht.
+   ============================================================ */
+const app = document.getElementById('app');
+let current = null;   // das gerade angezeigte Projekt (oder null = Übersicht)
+
+let overviewScroll = 0;   // wie weit die Übersicht gescrollt war, bevor ein Projekt geöffnet wurde
+
+function render(keepScroll) {
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { /* kaputter Link: Übersicht zeigen */ }
+  const p = ALL.find(function (x) { return x.id === id; }) || null;
+  let scrollTarget = 0;
+
+  if (p !== current) {
+    if (!current && p) overviewScroll = window.scrollY;   // Übersicht verlassen: Position merken
+    if (current && !p) scrollTarget = overviewScroll;     // zurück zur Übersicht: wieder dorthin
+    // Neues Projekt geöffnet: den ersten noch offenen Schritt aufklappen
+    current = p;
+    if (p) { const first = steps(p).indexOf(false); openStep = first === -1 ? -1 : first; }
+    keepScroll = false;
+  }
+  app.innerHTML = p ? renderProject(p) : renderOverview();
+  document.title = p ? p.title + ' · Scratch-Kurs' : 'Scratch-Kurs';
+  if (!keepScroll) window.scrollTo(0, scrollTarget);
+}
+
+/* Ein Klick-Empfänger für die ganze Seite: Jeder Knopf sagt über
+   data-action, was passieren soll. */
+app.addEventListener('click', function (ev) {
+  const el = ev.target.closest('[data-action]');
+  if (!el) return;
+  const action = el.getAttribute('data-action');
+  const step = Number(el.getAttribute('data-step'));
+
+  if (action === 'toggle') {
+    openStep = (openStep === step) ? -1 : step;
+    render(true);
+    scrollToStep(openStep);
+
+  } else if (action === 'done' && current) {
+    const s = steps(current).slice();
+    s[step] = true;
+    state.done[current.id] = s;
+    save();
+    const next = s.indexOf(false);          // nächster offener Schritt
+    openStep = next;                        // -1, wenn alles erledigt ist
+    render(true);
+    if (next === -1) window.scrollTo({ top: 0, behavior: 'smooth' });
+    else scrollToStep(next);
+
+  } else if (action === 'easy') {
+    state.easy = el.getAttribute('data-value') === '1';
+    save();
+    render(true);
+
+  } else if (action === 'ask-reset-all' || action === 'ask-reset-one') {
+    // Sicherheitsfrage direkt im Knopf: erst der zweite Tipp löscht wirklich.
+    el.textContent = 'Wirklich löschen? Dann hier noch einmal tippen.';
+    el.setAttribute('data-action', action === 'ask-reset-all' ? 'reset-all' : 'reset-one');
+
+  } else if (action === 'reset-all') {
+    state.done = {};
+    save();
+    render(false);
+
+  } else if (action === 'reset-one' && current) {
+    delete state.done[current.id];
+    save();
+    openStep = 0;
+    render(false);
+  }
+});
+
+function scrollToStep(i) {
+  const box = document.getElementById('step-' + i);
+  if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+window.addEventListener('hashchange', function () { render(false); });
+render(false);
+</script>
+</body>
+</html>
